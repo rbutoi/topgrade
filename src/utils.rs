@@ -325,3 +325,24 @@ macro_rules! output_changed_message {
         )
     };
 }
+
+#[cfg(test)]
+mod test {
+    #[cfg(windows)]
+    #[test]
+    #[ignore = "only valid on Windows"]
+    fn test_computername_matches_hostname() {
+        use std::process::Command;
+
+        let computername = std::env::var("COMPUTERNAME").expect("COMPUTERNAME env var not set");
+
+        #[allow(clippy::disallowed_methods)]
+        let hostname_output = Command::new("hostname").output().expect("Failed to run hostname");
+        let hostname_str = String::from_utf8_lossy(&hostname_output.stdout).trim().to_string();
+
+        assert_eq!(
+            computername, hostname_str,
+            "COMPUTERNAME ({computername}) does not match hostname command ({hostname_str})"
+        );
+    }
+}

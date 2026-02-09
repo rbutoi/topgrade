@@ -1,0 +1,53 @@
+name: Environment Detection Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - win-ci-test
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  wsl:
+    name: WSL detection (/proc/version vs uname -r)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: Vampire/setup-wsl@v6
+        with:
+          distribution: Ubuntu-24.04
+          additional-packages: curl build-essential pkg-config libssl-dev
+
+      - name: Install Rust in WSL
+        shell: wsl-bash {0}
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
+
+      - name: cargo test (ignored, WSL detection)
+        shell: wsl-bash {0}
+        run: |
+          source "$HOME/.cargo/env"
+          cargo test --locked -- --ignored test_wsl_detection_matches_uname
+
+  windows:
+    name: Windows hostname (COMPUTERNAME vs hostname)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+
+      - name: cargo test (ignored, Windows hostname)
+        shell: bash
+        run: cargo test --locked -- --ignored test_computername_matches_hostname

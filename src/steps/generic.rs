@@ -1932,3 +1932,31 @@ pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(falconf).arg("sync").status_checked()
 }
+
+#[cfg(test)]
+mod test {
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[ignore = "only valid on WSL"]
+    fn test_wsl_detection_matches_uname() {
+        use std::process::Command;
+
+        let proc_version = std::fs::read_to_string("/proc/version").unwrap_or_default();
+        let proc_is_wsl = proc_version.to_lowercase().contains("microsoft");
+
+        #[allow(clippy::disallowed_methods)]
+        let uname_output = Command::new("uname")
+            .arg("-r")
+            .output()
+            .expect("Failed to run uname -r");
+        let uname_str = String::from_utf8_lossy(&uname_output.stdout);
+        let uname_is_wsl = uname_str.to_lowercase().contains("microsoft");
+
+        assert_eq!(
+            proc_is_wsl, uname_is_wsl,
+            "/proc/version WSL detection ({proc_is_wsl}) disagrees with uname -r ({uname_is_wsl})\n\
+             /proc/version: {proc_version}\n\
+             uname -r: {uname_str}"
+        );
+    }
+}
